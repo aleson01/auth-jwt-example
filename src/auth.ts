@@ -8,18 +8,19 @@ const router = express.Router();
 const SECRET_KEY = 'sua_chave_secreta';
 
 router.post('/register', async (req: Request, res: Response) => {
-    const { name, cpf, email, password } = req.body;
+    const { name, cpf, email, password, role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
     const db = await initDatabase();
     
     try {
-        await db.run(`INSERT INTO users (name, cpf, email, password) VALUES (?, ?, ?, ?)`, [name, cpf, email, hashedPassword]);
-        res.status(201).json({ message: 'Usuario registrado com sucesso' });
+    await db.run(`INSERT INTO users (name, cpf, email, password, role) VALUES (?, ?, ?, ?, ?)`,
+        [name, cpf, email, hashedPassword, role || 'user']);
+
+    res.status(201).json({ message: 'Usuário registrado com sucesso' });
     } catch (error) {
         res.status(400).json({ error: 'Usuário já existe' });
     }
-
-});
+    });
 
 router.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
