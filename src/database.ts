@@ -16,6 +16,13 @@ export const initDatabase = async () => {
         role TEXT DEFAULT 'user'
         );
     `);
+    await db.exec(`CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        token TEXT NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users(id)
+        );
+    `);
 
     return db;
 };
