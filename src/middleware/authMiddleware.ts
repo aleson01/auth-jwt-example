@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+
 const SECRET_KEY = 'sua_chave_secreta';
 
 declare global {
