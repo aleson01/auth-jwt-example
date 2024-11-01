@@ -61,19 +61,28 @@ router.post('/refresh', async (req: Request, res: Response)=> {
     });
 });
 
-router.post('/logout', (req: Request, res: Response) => {
-    const { email, password } = req.body;
+router.post('/logout', async(req: Request, res: Response) => {
+    const { refreshToken } = req.body;
     const db = await initDatabase();
-    
-    const userId = decoded.id;
 
-    db.run('DELETE FROM users WHERE id = ?', [userId], (err) => {
+    jwt.verify(refreshToken, SECRET_KEY, (err:any, decoded:any) => {
         if (err) {
-            res.status(400).json({ error: 'Erro ao realizar Logout' });
-        } else {
-            res.json({ message: 'Logout successful' });
+            return res.status(403).json({ error: 'Token de atualização expirado' });
+        }
+        else{
+            const userId = decoded.id;
+
+            db.run('DELETE * FROM refresh_tokens WHERE id = ?', [userId], (err:any) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: 'Error logging out' });
+                  }
+                res.json({ message: 'Logged out successfully' });
+            });  
         }
     });
+    
+    
 });
 
 export default router;
