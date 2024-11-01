@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { initDatabase } from './database';
+import {authMiddleware} from './middleware/authMiddleware';
+import { error } from 'console';
 
 const router = express.Router();
 
@@ -29,12 +31,49 @@ router.post('/login', async (req: Request, res: Response) => {
 
     if (user && (await bcrypt.compare(password, user.password))) {
         const token = jwt.sign({ id: user.id, email: user.email
-    }, SECRET_KEY, {expiresIn: '1h',});
+    }, SECRET_KEY, {expiresIn: '15m',});
     
-    res.json({ token });
-
+    const refreshToken = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '7d' });
+        await db.run(`INSERT INTO refresh_tokens (userId, token) VALUES (?, ?)`, [user.id, refreshToken]);
+        res.json({ token, refreshToken });
     } else {
         res.status(401).json({ error: 'Credenciais inválidas'});
     }
 });
+
+router.post('/refresh', async (req: Request, res: Response)=> {
+    const { refreshToken } = req.body;
+    const db = await initDatabase();
+    if (!refreshToken) {
+        return res.status(401).json({ error: 'Token de atualização não fornecido' });
+    }
+    const tokenRecord = await db.get(`SELECT * FROM refresh_tokens WHERE token = ?`, [refreshToken]);
+    
+    if (!tokenRecord) {
+        return res.status(403).json({ error: 'Token de atualização inválido' });
+    }
+    jwt.verify(refreshToken, SECRET_KEY, (err:any, decoded:any) => {
+        if (err) {
+            return res.status(403).json({ error: 'Token de atualização expirado' });
+        }
+        const accessToken = jwt.sign({ id: decoded.id }, SECRET_KEY, { expiresIn: '15m' });
+        res.json({ token: accessToken });
+    });
+});
+
+router.post('/logout', (req: Request, res: Response) => {
+    const { email, password } = req.body;
+    const db = await initDatabase();
+    
+    const userId = decoded.id;
+
+    db.run('DELETE FROM users WHERE id = ?', [userId], (err) => {
+        if (err) {
+            res.status(400).json({ error: 'Erro ao realizar Logout' });
+        } else {
+            res.json({ message: 'Logout successful' });
+        }
+    });
+});
+
 export default router;
